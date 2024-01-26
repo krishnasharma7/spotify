@@ -6,7 +6,7 @@ def speechrecog():
     with sr.Microphone() as source:
         r.adjust_for_ambient_noise(source)
         
-        print("Command spoken:")
+        print("Please speak the command:")
         
         audio = r.listen(source,5,5)
         
@@ -19,6 +19,6 @@ def speechrecog():
 
 
 
-if __name__ == "__speechrecog__":
-    test=speechrecog()
-    print(f"\n{test}")
+# if __name__ == "__speechrecog__":
+#     test=speechrecog()
+#     print(f"\n{test}")
