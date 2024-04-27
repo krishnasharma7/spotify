@@ -21,7 +21,17 @@ scope = [
      "streaming",
      "playlist-modify-public",
      "playlist-read-private",
-     "playlist-modify-private"
+     "playlist-modify-private",
+     "user-read-playback-state",
+     "playlist-modify-public",
+     "user-follow-modify",
+     "user-follow-read",
+     "user-read-playback-position",
+     "user-top-read",
+     "user-read-recently-played",
+     "user-library-modify",
+     "user-library-read",
+     "user-read-private"
  ]
 
 from requests_oauthlib import OAuth2Session

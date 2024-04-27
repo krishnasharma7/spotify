@@ -74,7 +74,7 @@ def get_songs_by_artist(token,artist_id):
     json_result = json.loads(result.content)["tracks"]
     return json_result
 
-def play_song(token,name):
+def play_song_old(token,name):
     url = "https://api.spotify.com/v1/me/player/play"
     headers = get_auth_header(token)
     uri = search_for_track(token,name)['uri']
@@ -84,7 +84,148 @@ def play_song(token,name):
     }
     result = put(url,data=json.dumps(data),headers=headers)
     print(result.status_code)
+
+def play_song(token,ip):
+    url = "https://api.spotify.com/v1/search"
+    headers= get_auth_header(token)
+    name = get_song_from_user(ip)
+    query = f"?q={name}&type=track&limit=50"
     
+    query_url = url + query
+    
+    result = get(query_url,headers=headers)
+    tracks = result.json()['tracks']['items']
+    ipartist=get_artist_from_user(ip)
+    print(ipartist)
+    flag = False
+    track = None
+    for i in range(len(tracks)):
+        artist_name = tracks[i]['album']['artists'][0]['name'].lower()
+        track = tracks[i]
+        artist_name = [i for i in artist_name if ord(i) >= 97 and ord(i)<=122]
+        artist_name="".join(artist_name)
+        if artist_name == ipartist:
+            flag = True
+            break
+    if flag:
+        uri = track['uri']
+        url = "https://api.spotify.com/v1/me/player/play"
+        headers = get_auth_header(token)
+        data = {
+            "uris" : [f"{uri}"]
+        }
+        result = put(url,data=json.dumps(data),headers=headers)
+        print(result.status_code)
+    else:
+        print("Track not found")
+        
+    
+    
+def skip_song(token):
+    url = "https://api.spotify.com/v1/me/player/next"
+    headers = get_auth_header(token)
+    response = post(url,headers=headers)
+    print(response.status_code)
+    
+def seek_song(token):
+    url = "https://api.spotify.com/v1/me/player/previous"
+    headers = get_auth_header(token)
+    response = post(url,headers=headers)
+    print(response.status_code)
+
+def set_volume(token,value):
+    url = "https://api.spotify.com/v1/me/player/volume"
+    query=f"?volume_percent={value}"
+    url_final = url + query
+    headers = get_auth_header(token)
+    # data = {
+    #     "volume_percent" : value
+    # }
+    response = put(url_final,headers=headers)
+    print(response.status_code)
+
+def toggle_shuffle(token):
+    url="https://api.spotify.com/v1/me/player/shuffle"
+    shuffle_state = get_playback_state(token)['shuffle_state']
+    shuffle_state = str(not shuffle_state).lower()
+    print(shuffle_state)
+    query_url = url + f"?state={shuffle_state}"
+    headers = get_auth_header(token)
+    response = put(query_url,headers=headers)
+    print(response.status_code)
+
+def get_playback_state(token):
+    url = "https://api.spotify.com/v1/me/player"
+    headers = get_auth_header(token)
+    response = get(url,headers=headers)
+    res_obj = response.json()
+    return res_obj
+
+def repeat_track(token):
+    url = "https://api.spotify.com/v1/me/player/repeat?state=track"
+    headers = get_auth_header(token)
+    response = put(url,headers=headers)
+    print(response.status_code)
+
+def get_playlists(token):
+    url = "https://api.spotify.com/v1/me/playlists?limit=50"
+    headers = get_auth_header(token)
+    response = get(url,headers=headers)
+    #print(response.status_code)
+    obj = response.json()
+    playlists = obj['items']
+    return playlists
+
+def play_playlist(token,name):
+    url = "https://api.spotify.com/v1/me/player/play"
+    headers = get_auth_header(token)
+    playlists = get_playlists(token)
+    pl = 0
+    for i in range(len(playlists)):
+        pl = playlists[i]
+        if(pl['name'].lower() == name):
+            break
+    if pl == 0:
+        print("Playlist not found")
+    else:
+        uri = pl['uri']
+        data = {
+            "context_uri" : f"{uri}"
+        }
+        response = put(url,data=json.dumps(data),headers=headers)
+        print(response.status_code)
+
+def volume_up_down(token,command):
+    pbstate = get_playback_state(token)
+    cur_vol = int(pbstate['device']['volume_percent'])
+    if command.lower() == "up":
+        cur_vol+=10
+    elif command.lower() == "down":
+        cur_vol-=10
+    else:
+        pass
+    set_volume(token,cur_vol)
+    
+def pause(token):
+    url = "https://api.spotify.com/v1/me/player/pause"
+    headers = get_auth_header(token)
+    response = put(url,headers=headers)
+    print(response.status_code)
+
+def resume(token):
+    url = "https://api.spotify.com/v1/me/player/play"
+    headers = get_auth_header(token)
+    response = put(url,headers=headers)
+    print(response.status_code)
+
+def add_to_queue(token,name):
+    url = "https://api.spotify.com/v1/me/player/queue"
+    headers = get_auth_header(token)
+    uri = str(search_for_track(token,name)['uri'])
+    query_url = url + f"?uri={uri}"
+    response = post(query_url,headers=headers)
+    print(response.status_code)
+
 token = get_token()
 result = search_for_artist(token, "J Cole")
 # print(result["followers"]["total"])
@@ -108,6 +249,13 @@ def get_song_from_user(inp):
         song+=inp[i]
     return song
 
+def get_artist_from_user(ip):
+    ip = ip.split(" ")
+    ipartist=""
+    for i in range(ip.index("by")+1,len(ip)):
+        ipartist+=ip[i]
+    ipartist=("".join(ipartist)).lower()
+    return ipartist
 refreshtoken = os.getenv("REFRESH_TOKEN")
 
 def refresh_token(client_id, client_secret):
@@ -121,7 +269,7 @@ def refresh_token(client_id, client_secret):
     }
     data = {
         "grant_type": "refresh_token",
-        "refresh_token": "AQA4zsLFSQPD6VjfTxLGgnagyyDKX8lKVSJtWBwnjJPSyb_nolzr7jmelaCbA6DnPxAp8NHSzDndZxAxetWo9nqjZLS3cs-YK4t-ZnQunzyLj7sC_tD9p2Z2B_EqHorXmpg"
+        "refresh_token": "AQBXYAPIeV01fGwpB02JgEuEinZktENdVWY5vHkSAH7SSTie2Bf3gavW74sTXPVIJmt-gVCGJBAPbxOcKXkRmYZdCnwLRa_EnIx_wFewg6i80G7jAloqInwARYmFZQuhhGk"
     }
     response = post(url, headers=headers, data=data)
     # json_result = json.loads(response.content)
@@ -139,11 +287,20 @@ def main():
     client_id = os.getenv("CLIENT_ID")
     client_secret = os.getenv("CLIENT_SECRET")
     token = refresh_token(client_id,client_secret)
-    ip = speechrecog()
-    print(ip)
-    print(get_song_from_user(ip.lower()))
-    play_song(token,get_song_from_user(ip.lower()))
-    print(search_for_track(token,get_song_from_user(ip.lower()))['uri'])
+    # ip = speechrecog()
+    # print(play_song(token,ip.lower()))
+    print(get_playback_state(token))
+    # print(ip)
+    # print(get_song_from_user(ip.lower()))
+    # play_song(token,get_song_from_user(ip.lower()))
+    # print(search_for_track(token,get_song_from_user(ip.lower()))['uri'])
+    # toggle_shuffle(token)
+    # print(play_playlist(token,"bangers"))
+    # print(search_for_track(token,"a lot"))
+    # print(play_song(token,"play earthquake by tyler the creator"))
+    # print(play_playlist(token,"liked songs"))
+    
+    
     
 if __name__ == '__main__':
     main()

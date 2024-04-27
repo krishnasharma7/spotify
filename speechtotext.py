@@ -11,7 +11,7 @@ def speechrecog():
         audio = r.listen(source,5,5)
         
         try:
-            print("Sentence recognised:\n "+ r.recognize_google(audio))
+            print("Sentence recognised:\n"+ r.recognize_google(audio))
             ip = str(r.recognize_google(audio))
             return ip
         except Exception as e:
